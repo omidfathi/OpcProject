@@ -10,43 +10,34 @@ sys.path.insert(0, "..")
 import json
 
 
-async def get_by_root_object(index, list):
-    root_objects = []
-    for i in list:
-        print(list[i], list[i] == index)
-        if list[i] == index:
-            root_objects.append(i)
-    return root_objects
 
 
 async def main():
     client = Client("opc.tcp://ofathi:53530/OPCUA/SimulationServer")
     print(client)
     client.session_timeout = 2000
-    # print(await client.load_data_type_definitions())
-    # root = client.nodes.root
+
     while True:
 
         async with client:
             all_variables = []
             all_parents = []
-            node_list = await ua_utils.get_node_children(client.nodes.objects)
-            parents_list = await ua_utils.get_node_supertypes(client.nodes.objects)
-            rootid = client.get_root_node()
-            # print(rootid)
-            node__list = []
-            print(await Node.get_children(rootid))
-            for i in node_list:
 
+            rootid = client.get_root_node()
+
+
+            print(await Node.get_children(rootid))
+            for i in rootid:
+                child = Node.get_child(i)
                 node_class = await i.read_node_class()
 
                 if node_class == ua.NodeClass.Variable:
-                    all_variables.append(i)
+                    all_variables.append(child)
 
             # print(all_variables)
             # print("//////*/*/*/*/*/*/*/////////")
             # print(await client.load_data_type_definitions())
-
+            print(all_variables)
             node_id_to_value_dict = {}
             for node in all_variables:
 
@@ -60,20 +51,9 @@ async def main():
                 nodeParent = await Node.get_parent(node)
 
 
-                # all_parents.append(parents_list)
-                # print(node.nodeid)
                 base_identifier = 'Identifier = '+str(nodeIdentifier)
                 base_namespace = 'Namespace = ' + str(nodeNamespace)
-                base_ns_i = base_identifier + ' , ' + base_namespace
-            #     # value = await node.read_value()
-            #     # print(parents)
-            #     await client.load_data_type_definitions()
-            #     # print(node.nodeid)
-            #     node_id_to_value_dict[base_ns_i] = {
-            #         'Browse_Name': browse_Name,
-            #         'IdenSpace' : nodeNamespace,
-            #         'Node_Id_Type' : nodeNodeIdType,
-            #         'Server_Index' : nodeServerIndex}
+
 
                 node_id_to_value_dict[node.nodeid] = nodeParent
                 # node_id_to_value_dict.sort(nodeParent)

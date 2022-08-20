@@ -5,23 +5,45 @@ import asyncua
 from asyncua import Client, ua, Node
 from asyncua.common import ua_utils
 import json
+import pandas as pd
 
 sys.path.insert(0, "..")
 all_variable = []
 all_dict = {}
+dataNow = {}
+
+
 i = 0
 
 
 async def walk(node, level=0):
 
     children = await node.get_children()
-    # all_dict[node] = [children]
+    child=[]
+    browseName = []
+    for i in children:
+        child.append(str(i))
+        parentId = await Node.get_parent(i)
+        parentId = "i="+str(parentId.nodeid.Identifier)+";ns="+str(parentId.nodeid.NamespaceIndex)
+        br = await i.read_browse_name()
+
+        browseName.append(str(br.Name))
+        # print(f"{type(nodeId)},{parentId},{browseName}.")
+        dataNow[str(node)] = {
+            "children":child,
+
+            "parentId":parentId,
+            "browseName":browseName,
+        }
+
     # if children == []:
     #
     #     i = 0
     #     pass
     # else:
-    all_dict[node] = [children]
+    node_Parent = await Node.get_parent(node)
+    # print(node_Parent)
+    all_dict[node] = [children, node_Parent]
 
     all_variable.append(children)
     if children:
@@ -31,12 +53,13 @@ async def walk(node, level=0):
 
     else:
         # value = await node.read_value()
-        try:
-            value = await Node.read_value(node)
-        except asyncua.ua.uatypes.UaStatusCodeError:
-            value = ":bad"
-        print('{}:{}'.format(node, value))
-    return all_dict
+        # try:
+        #     value = await Node.read_value(node)
+        # except asyncua.ua.uatypes.UaStatusCodeError:
+        #     value = ":bad"
+        # print('{}:{}'.format(node, value))
+        pass
+    return dataNow
 # async def children_find_end(children_of_root):
 #     child_end = []
 #     try:
@@ -71,7 +94,7 @@ async def walk(node, level=0):
 
 
 async def main():
-    client = Client("opc.tcp://ofathi:53530/OPCUA/SimulationServer")
+    client = Client("opc.tcp://fateme:49580")
     print(client)
     client.session_timeout = 2000
 
@@ -87,7 +110,12 @@ async def main():
             # print(children_of_root)
 
             child_1 = await walk(root_id)
-            print(child_1)
+            json_object = json.dumps(child_1, indent=4)
+            print(json_object)
+            df =pd.DataFrame(child_1)
+
+
+            print(df_csv)
             # for y in child:
             #     node_class = await y.read_node_class()
             #

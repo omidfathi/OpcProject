@@ -13,6 +13,21 @@ all_variable = []
 all_dict = {}
 dataNow = {}
 
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger('asyncua')
+
+class SubscriptionHandler:
+    """
+    The SubscriptionHandler is used to handle the data that is received for the subscription.
+    """
+    def datachange_notification(self, node: Node, val, data):
+        """
+        Callback for asyncua Subscription.
+        This method will be called when the Client received a data change message from the Server.
+        """
+        # _logger.info('datachange_notification %r %s', node, val)
+        print(f"Data change happen in node {node},..., value:{val}")
+
 
 async def walk(node, level=0):
 
@@ -42,12 +57,12 @@ async def walk(node, level=0):
             dataValue.append("")
 
         dataNow[str(node)] = {
-            "children": child,
+            "Children": child,
             "NodeClass": nodeClass,
             "DataType": dataType,
             "DataValue": dataValue,
-            "parentId": parentId,
-            "browseName": browseName,
+            "ParentId": parentId,
+            "BrowseName": browseName,
         }
 
     # node_Parent = await Node.get_parent(node)
@@ -81,11 +96,21 @@ async def main():
 
             root_id = client.get_root_node()
             # node_List = await ua_utils.get_node_children(client.nodes.objects)
+
             obj = client.nodes.objects
             child_1 = await walk(obj)
             json_object = json.dumps(child_1, indent=4)
             print(json_object)
-            0
+            handler = SubscriptionHandler()
+            # We create a Client Subscription.
+            subscription = await client.create_subscription(500, handler)
+            nodes = [
+                client.get_node("ns=2;s=Process Data.Temperature"),
+                client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime),
+            ]
+            await subscription.subscribe_data_change(nodes)
+            await asyncio.sleep(100)
+
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.WARN)
     asyncio.run(main())

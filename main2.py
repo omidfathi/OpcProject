@@ -1,9 +1,10 @@
+import gettext
 import sys
 import logging
 import asyncio
 import asyncua
 from asyncua import Client, ua, Node
-from asyncua.common import ua_utils
+from asyncua.common import ua_utils, uamethod
 import json
 import pandas as pd
 
@@ -19,8 +20,10 @@ i = 0
 async def walk(node, level=0):
 
     children = await node.get_children()
+    nodeClass = []
     child=[]
     browseName = []
+    dataType = []
     for i in children:
         child.append(str(i))
         parentId = await Node.get_parent(i)
@@ -28,12 +31,21 @@ async def walk(node, level=0):
         br = await i.read_browse_name()
 
         browseName.append(str(br.Name))
+        nodeClass_v = str(await i.read_node_class())
+        nodeClass.append(nodeClass_v)
+        if nodeClass_v == "NodeClass.Variable":
+            dataType_v = await i.read_data_type_as_variant_type()
+            dataType.append(dataType_v.name)
+        else:
+            dataType.append("None")
+
         # print(f"{type(nodeId)},{parentId},{browseName}.")
         dataNow[str(node)] = {
-            "children":child,
-
-            "parentId":parentId,
-            "browseName":browseName,
+            "children": child,
+            "NodeClass": nodeClass,
+            "DataType": dataType,
+            "parentId": parentId,
+            "browseName": browseName,
         }
 
     # if children == []:

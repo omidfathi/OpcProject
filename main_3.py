@@ -21,6 +21,7 @@ async def walk(node, level=0):
     child = []
     browseName = []
     dataType = []
+    dataValue = []
 
     for i in children:
         child.append(str(i))
@@ -33,14 +34,18 @@ async def walk(node, level=0):
         nodeClass.append(nodeClass_v)
         if nodeClass_v == "NodeClass.Variable":
             dataType_v = await i.read_data_type_as_variant_type()
+            dataValue_v = await Node.read_value(i)
             dataType.append(dataType_v.name)
+            dataValue.append(str(dataValue_v))
         else:
             dataType.append("None")
+            dataValue.append("")
 
         dataNow[str(node)] = {
             "children": child,
             "NodeClass": nodeClass,
             "DataType": dataType,
+            "DataValue": dataValue,
             "parentId": parentId,
             "browseName": browseName,
         }
@@ -80,8 +85,7 @@ async def main():
             child_1 = await walk(obj)
             json_object = json.dumps(child_1, indent=4)
             print(json_object)
-            print(await client.read_values(["ns=2;s=Process Data.Temperature"]))
-
+            0
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARN)
+    # logging.basicConfig(level=logging.WARN)
     asyncio.run(main())

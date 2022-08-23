@@ -12,6 +12,7 @@ sys.path.insert(0, "..")
 all_variable = []
 all_dict = {}
 dataNow = {}
+sendValues = {}
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger('asyncua')
@@ -20,13 +21,20 @@ class SubscriptionHandler:
     """
     The SubscriptionHandler is used to handle the data that is received for the subscription.
     """
-    def datachange_notification(self, node: Node, val, data):
+    async def datachange_notification(self, node: Node, val, data):
         """
         Callback for asyncua Subscription.
         This method will be called when the Client received a data change message from the Server.
         """
         # _logger.info('datachange_notification %r %s', node, val)
-        print(f"Data change happen in node {node},..., value:{val}")
+        dataType_v = await node.read_data_type_as_variant_type()
+        sendValues[str(node)] = {
+            "Value": str(val),
+            "DataType": str(dataType_v.name)
+        }
+        jsonNodesValue = json.dumps(sendValues, indent=2)
+        print(jsonNodesValue)
+
 
 
 async def walk(node, level=0):
@@ -39,32 +47,34 @@ async def walk(node, level=0):
     dataValue = []
 
     for i in children:
-        child.append(str(i))
-        parentId = await Node.get_parent(i)
-        parentId = "i="+str(parentId.nodeid.Identifier)+";ns="+str(parentId.nodeid.NamespaceIndex)
-        br = await i.read_browse_name()
+        try:
+            child.append(str(i))
+            parentId = await Node.get_parent(i)
+            parentId = "ns="+str(parentId.nodeid.NamespaceIndex)+"i="+str(parentId.nodeid.Identifier)
+            br = await i.read_browse_name()
 
-        browseName.append(str(br.Name))
-        nodeClass_v = str(await i.read_node_class())
-        nodeClass.append(nodeClass_v)
-        if nodeClass_v == "NodeClass.Variable":
-            dataType_v = await i.read_data_type_as_variant_type()
-            dataValue_v = await Node.read_value(i)
-            dataType.append(dataType_v.name)
-            dataValue.append(str(dataValue_v))
-        else:
-            dataType.append("None")
-            dataValue.append("")
+            browseName.append(str(br.Name))
+            nodeClass_v = str(await i.read_node_class())
+            nodeClass.append(nodeClass_v)
+            if nodeClass_v == "NodeClass.Variable":
+                dataType_v = await i.read_data_type_as_variant_type()
+                dataValue_v = await Node.read_value(i)
+                dataType.append(dataType_v.name)
+                dataValue.append(str(dataValue_v))
+            else:
+                dataType.append("None")
+                dataValue.append("")
 
-        dataNow[str(node)] = {
-            "Children": child,
-            "NodeClass": nodeClass,
-            "DataType": dataType,
-            "DataValue": dataValue,
-            "ParentId": parentId,
-            "BrowseName": browseName,
-        }
-
+            dataNow[str(node)] = {
+                "Children": child,
+                "NodeClass": nodeClass,
+                "DataType": dataType,
+                "DataValue": dataValue,
+                "ParentId": parentId,
+                "BrowseName": browseName,
+            }
+        except:
+            pass
     # node_Parent = await Node.get_parent(node)
     # all_dict[node] = [children, node_Parent]
 
@@ -82,11 +92,11 @@ mqtt = Mqtt()
 async def main():
     mqtt.mqtt_connection_initial("OPC_Client", "192.168.1.51", 1883)
 
-    mqtt.mqtt_connection()
+    # mqtt.mqtt_connection()
 
 
     # opc_url = mqtt.mqtt_sub(topic="", qos=0)
-    client = Client("opc.tcp://fateme:49580")
+    client = Client("opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator")
     print(client)
     client.session_timeout = 2000
 
@@ -96,7 +106,8 @@ async def main():
 
             root_id = client.get_root_node()
             # node_List = await ua_utils.get_node_children(client.nodes.objects)
-
+            newNodeList = []
+            asdasd = await client.load_data_type_definitions()
             obj = client.nodes.objects
             child_1 = await walk(obj)
             json_object = json.dumps(child_1, indent=4)
@@ -104,12 +115,13 @@ async def main():
             handler = SubscriptionHandler()
             # We create a Client Subscription.
             subscription = await client.create_subscription(500, handler)
-            nodes = [
-                client.get_node("ns=2;s=Process Data.Temperature"),
-                client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime),
-            ]
-            await subscription.subscribe_data_change(nodes)
-            await asyncio.sleep(100)
+            nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20", "ns=2;s=Tag18"]
+            for i in nodeList:
+                newNodeList.append(client.get_node(i))
+            newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
+
+            await subscription.subscribe_data_change(newNodeList)
+            await asyncio.sleep(600)
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.WARN)

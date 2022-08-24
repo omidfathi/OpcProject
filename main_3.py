@@ -1,6 +1,8 @@
 import sys
 import logging
 import asyncio
+import time
+
 from asyncua import Client, Node, ua, tools
 from asyncua.common import ua_utils
 
@@ -17,26 +19,23 @@ sendValues = {}
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger('asyncua')
 
-class SubscriptionHandler:
-    """
-    The SubscriptionHandler is used to handle the data that is received for the subscription.
-    """
-    async def datachange_notification(self, node: Node, val, data):
-        """
-        Callback for asyncua Subscription.
-        This method will be called when the Client received a data change message from the Server.
-        """
-        # _logger.info('datachange_notification %r %s', node, val)
-        dataType_v = await node.read_data_type_as_variant_type()
-        sendValues[str(node)] = {
-            "Value": str(val),
-            "DataType": str(dataType_v.name)
-        }
-        jsonNodesValue = json.dumps(sendValues, indent=2)
-        print(jsonNodesValue)
-
-
-
+# class SubscriptionHandler:
+#     """
+#     The SubscriptionHandler is used to handle the data that is received for the subscription.
+#     """
+#     async def datachange_notification(self, node: Node, val, data):
+#         """
+#         Callback for asyncua Subscription.
+#         This method will be called when the Client received a data change message from the Server.
+#         """
+#         # _logger.info('datachange_notification %r %s', node, val)
+#         dataType_v = await node.read_data_type_as_variant_type()
+#         sendValues[str(node)] = {
+#             "Value": str(val),
+#             "DataType": str(dataType_v.name)
+#         }
+#         jsonNodesValue = json.dumps(sendValues, indent=2)
+#         print(jsonNodesValue)
 async def walk(node, level=0):
 
     children = await node.get_children()
@@ -50,7 +49,7 @@ async def walk(node, level=0):
         try:
             child.append(str(i))
             parentId = await Node.get_parent(i)
-            parentId = "ns="+str(parentId.nodeid.NamespaceIndex)+"i="+str(parentId.nodeid.Identifier)
+            parentId = "ns="+str(parentId.nodeid.NamespaceIndex)+";i="+str(parentId.nodeid.Identifier)
             br = await i.read_browse_name()
 
             browseName.append(str(br.Name))
@@ -96,31 +95,45 @@ async def main():
 
 
     # opc_url = mqtt.mqtt_sub(topic="", qos=0)
-    client = Client("opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator")
+    client = Client("opc.tcp://fateme:49580")
+    client2 = Client("opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator")
     print(client)
+    print(client2)
     client.session_timeout = 2000
+    client2.session_timeout = 2000
 
     while True:
 
-        async with client:
-
+        async with client, client2:
             root_id = client.get_root_node()
             # node_List = await ua_utils.get_node_children(client.nodes.objects)
-            newNodeList = []
-            asdasd = await client.load_data_type_definitions()
-            obj = client.nodes.objects
-            child_1 = await walk(obj)
-            json_object = json.dumps(child_1, indent=4)
-            print(json_object)
-            handler = SubscriptionHandler()
-            # We create a Client Subscription.
-            subscription = await client.create_subscription(500, handler)
-            nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20", "ns=2;s=Tag18"]
-            for i in nodeList:
-                newNodeList.append(client.get_node(i))
-            newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
 
-            await subscription.subscribe_data_change(newNodeList)
+            obj = client.nodes.objects
+            obj2 = client2.nodes.objects
+
+            child_1 = await walk(obj)
+            child_2 = await walk(obj2)
+            json_object = json.dumps(child_1, indent=4)
+            json_object2 = json.dumps(child_2, indent=4)
+            print(json_object)
+            print('''///////
+            /*/*/*/*/*/*/*
+            */*/*/*/*/*/*/
+            */*/*/*/*/*/*/
+            */*/*/*/*/*/*
+            */*/*/*/*/*/*/*
+            */*/*/*/*/*/*/
+            /////////////''')
+            print(json_object2)
+            # handler = SubscriptionHandler()
+            # # We create a Client Subscription.
+            # subscription = await client.create_subscription(500, handler)
+            # nodeList = ["ns=2;s=Process Data.Temperature", "ns=2;s=Tag9"]
+            # for i in nodeList:
+            #     newNodeList.append(client.get_node(i))
+            # newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
+            #
+            # await subscription.subscribe_data_change(newNodeList)
             await asyncio.sleep(600)
 
 if __name__ == "__main__":

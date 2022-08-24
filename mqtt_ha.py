@@ -11,15 +11,15 @@ from asyncua.client.ha.ha_client import HaClient, HaMode, HaConfig
 
 
 # set up logging
-root = logging.getLogger()
-root.setLevel(logging.DEBUG)
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-root.addHandler(handler)
-# diable logging for the servers
-logging.getLogger("asyncua.server").setLevel(logging.WARNING)
+# root = logging.getLogger()
+# root.setLevel(logging.DEBUG)
+# handler = logging.StreamHandler(sys.stdout)
+# handler.setLevel(logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# handler.setFormatter(formatter)
+# root.addHandler(handler)
+# # diable logging for the servers
+# logging.getLogger("asyncua.server").setLevel(logging.WARNING)
 
 
 class SubHandler:
@@ -80,7 +80,7 @@ async def main():
         keepalive_timer=15,
         manager_timer=15,
         reconciliator_timer=15,
-        urls=["opc.tcp://localhost:49580", "opc.tcp://localhost:5059/OPCUA/SimulationServer"],
+        urls=["opc.tcp://localhost:49580", "opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator"],
         session_timeout=30
     )
     ha = HaClient(ha_config)
@@ -92,7 +92,7 @@ async def main():
     sub1 = await ha.create_subscription(publish_interval, handler)
 
     print(ha.get_clients())
-    await ha.subscribe_data_change(sub1, ["ns=2;s=Process Data.Temperature", "ns=2;i=1001"])
+    await ha.subscribe_data_change(sub1, ["ns=2;s=Process Data.Temperature", "ns=2;s=Tag9"])
 
 
     # Watch the debug log and check what's happening in the background.

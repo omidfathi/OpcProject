@@ -15,27 +15,27 @@ all_variable = []
 all_dict = {}
 dataNow = {}
 sendValues = {}
-
+newNodeList = []
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger('asyncua')
 
-# class SubscriptionHandler:
-#     """
-#     The SubscriptionHandler is used to handle the data that is received for the subscription.
-#     """
-#     async def datachange_notification(self, node: Node, val, data):
-#         """
-#         Callback for asyncua Subscription.
-#         This method will be called when the Client received a data change message from the Server.
-#         """
-#         # _logger.info('datachange_notification %r %s', node, val)
-#         dataType_v = await node.read_data_type_as_variant_type()
-#         sendValues[str(node)] = {
-#             "Value": str(val),
-#             "DataType": str(dataType_v.name)
-#         }
-#         jsonNodesValue = json.dumps(sendValues, indent=2)
-#         print(jsonNodesValue)
+class SubscriptionHandler:
+    """
+    The SubscriptionHandler is used to handle the data that is received for the subscription.
+    """
+    async def datachange_notification(self, node: Node, val, data):
+        """
+        Callback for asyncua Subscription.
+        This method will be called when the Client received a data change message from the Server.
+        """
+        # _logger.info('datachange_notification %r %s', node, val)
+        dataType_v = await node.read_data_type_as_variant_type()
+        sendValues[str(node)] = {
+            "Value": str(val),
+            "DataType": str(dataType_v.name)
+        }
+        jsonNodesValue = json.dumps(sendValues, indent=2)
+        print(jsonNodesValue)
 async def walk(node, level=0):
 
     children = await node.get_children()
@@ -95,26 +95,21 @@ async def main():
 
 
     # opc_url = mqtt.mqtt_sub(topic="", qos=0)
-    client = Client("opc.tcp://fateme:49580")
-    client2 = Client("opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator")
+    client = Client("opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator")
+
     print(client)
-    print(client2)
     client.session_timeout = 2000
-    client2.session_timeout = 2000
 
     while True:
 
-        async with client, client2:
+        async with client:
             root_id = client.get_root_node()
             # node_List = await ua_utils.get_node_children(client.nodes.objects)
 
             obj = client.nodes.objects
-            obj2 = client2.nodes.objects
 
             child_1 = await walk(obj)
-            child_2 = await walk(obj2)
             json_object = json.dumps(child_1, indent=4)
-            json_object2 = json.dumps(child_2, indent=4)
             print(json_object)
             print('''///////
             /*/*/*/*/*/*/*
@@ -124,16 +119,15 @@ async def main():
             */*/*/*/*/*/*/*
             */*/*/*/*/*/*/
             /////////////''')
-            print(json_object2)
-            # handler = SubscriptionHandler()
-            # # We create a Client Subscription.
-            # subscription = await client.create_subscription(500, handler)
-            # nodeList = ["ns=2;s=Process Data.Temperature", "ns=2;s=Tag9"]
-            # for i in nodeList:
-            #     newNodeList.append(client.get_node(i))
-            # newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
+            handler = SubscriptionHandler()
+            # We create a Client Subscription.
+            subscription = await client.create_subscription(500, handler)
+            nodeList = ["ns=2;s=Process Data.Temperature", "ns=2;s=Tag9"]
+            for i in nodeList:
+                newNodeList.append(client.get_node(i))
+            newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
             #
-            # await subscription.subscribe_data_change(newNodeList)
+            await subscription.subscribe_data_change(newNodeList)
             await asyncio.sleep(600)
 
 if __name__ == "__main__":

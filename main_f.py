@@ -1,13 +1,12 @@
-import sys
-from byteDecode import *
 import asyncio
 import time
 from asyncua import Client, Node, ua
 import json
 from nodeSubscribe import SubscriptionHandler
-
+import codecs
 import paho.mqtt.client as mqtt
 from queue import Queue
+from ast import literal_eval
 
 # sys.path.insert(0, "..")
 all_variable = []
@@ -17,7 +16,6 @@ sendValues = {}
 nodeList = []
 newNodeList = []
 set_connection = True
-
 
 # logging.basicConfig(level=logging.INFO)
 # _logger = logging.getLogger('asyncua')
@@ -136,7 +134,7 @@ async def catchNodes(client, opc_url):
     rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
     # print(json_object)
 
-
+# num = []
 async def checkMessageFrom(q):
     try:
         message = q.get()
@@ -150,9 +148,27 @@ async def checkMessageFrom(q):
             bMessage["send_opc_tag"] = message.payload
         elif message.topic == "TimeSync":
             bMessage["TimeSync"] = message.payload
-        name_str = str(bMessage["TimeSync"])
-
+            # num = message.payload
+            # print(type(num))
+            # res = literal_eval(num[6:8])
+            # print(res)
+        name_str = bMessage["TimeSync"]
         print(name_str)
+        year = name_str[0]
+        month = name_str[1]
+        day = name_str[2]
+        hour = name_str[3]
+        minute = name_str[4]
+        second = name_str[5]
+        milisecond = name_str[6:8].hex()
+        milisecond_dec = int(milisecond, 16)
+        print(milisecond)
+        print(milisecond_dec)
+        print(f"{year};{month};{day};{hour};{minute};{second};{milisecond}")
+        for i in name_str:
+            print(type(i))
+            print(i)
+
         # timeSync = timeSync_decoder(bMessage['TimeSync'])
         # print(timeSync)
     except asyncio.TimeoutError:
@@ -162,7 +178,7 @@ async def checkMessageFrom(q):
 async def opcConnection():
     try:
         opc_url = "opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator"
-        client = Client(opc_url)
+        client = await Client(opc_url)
         print(client)
         client.session_timeout = 2000
 
@@ -179,42 +195,76 @@ async def opcConnection():
             if nodeList != []:
                 for i in nodeList:
                     newNodeList.append(client.get_node(i))
-                newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
+                await newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
                 while True:
                     await subscription.subscribe_data_change(newNodeList)
             else:
                 await main()
     except:
         await main()
+async def brokerConnection(set_connection, clientMqtt):
+    while set_connection:
+        try:
+            if clientMqtt.on_connect_fail != None:
+                clientMqtt = mqtt.Client("OPC_client")
+                clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=0)
+                clientMqtt.loop_start()
+                clientMqtt.on_connect = on_connect
+                clientMqtt.on_publish = on_publish
+                clientMqtt.on_subscribe = on_subscribe
+                clientMqtt.on_message = on_message
+                clientMqtt.on_log
+                print(clientMqtt)
+                MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 1)]
+                clientMqtt.subscribe(MQTT_TOPIC)
+                set_connection = False
+            else:
+                pass
+                set_connection = False
+        except:
+            print("Can't Connect to broker")
 
 q = Queue()
-clientMqtt = mqtt.Client("OPC_client")
+
 # clientMqtt.on_message = on_message
+clientMqtt = mqtt.Client("OPC_client")
 clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=0)
 clientMqtt.loop_start()
 clientMqtt.on_connect = on_connect
 clientMqtt.on_publish = on_publish
 clientMqtt.on_subscribe = on_subscribe
 clientMqtt.on_message = on_message
-
+print(clientMqtt)
 MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 1)]
-
 clientMqtt.subscribe(MQTT_TOPIC)
+
+
+
 
 async def main():
     # clientMqtt.publish(topic="", payload="")
     # clientMqtt.subscribe(topic="Get_OPC_TREE_Topic", qos=0)
     # sub_message = queue(q)
     # print(sub_message)
+        # Wait for at most 1 second
 
     # mqtt.mqtt_connection()
-    await asyncio.gather(opcConnection(), checkMessageFrom(q))
+
+    tasks = [
+        brokerConnection(set_connection, clientMqtt),
+        asyncio.gather(opcConnection()),
+        checkMessageFrom(q)
+                       ]
+    await asyncio.gather(*tasks)
+
+    # await asyncio.gather(opcConnection(), checkMessageFrom(q))
     # opc_url = mqtt.mqtt_sub(topic="", qos=0)
 
 
 # loop = asyncio.get_event_loop()
 if __name__ == "__main__":
     try:
+
         asyncio.run(main())
         # asyncio.run(checkMessageFrom(q))
 

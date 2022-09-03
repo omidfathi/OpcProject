@@ -1,5 +1,8 @@
 import asyncio
 import time
+from asyncua.ua import ObjectIds # type: ignore[import]
+from asyncua.ua.uatypes import NodeId
+from Pyro4.socketutil import setKeepalive
 from asyncua import Client, Node, ua
 import json
 from nodeSubscribe import SubscriptionHandler
@@ -16,7 +19,8 @@ sendValues = {}
 nodeList = []
 newNodeList = []
 set_connection = True
-
+catchingNodes = True
+server_state = True
 # logging.basicConfig(level=logging.INFO)
 # _logger = logging.getLogger('asyncua')
 
@@ -34,11 +38,11 @@ class SubscriptionHandler:
         # _logger.info('datachange_notification %r %s', node, val)
         dataType_v = await node.read_data_type_as_variant_type()
         sendValues[str(node)] = {
-            "Value": str(val),
+            "Value": float(val),
             "DataType": str(dataType_v.name)
         }
         jsonNodesValue = json.dumps(sendValues, indent=2)
-        # print(jsonNodesValue)
+        print(jsonNodesValue)
 #
 
 def on_connect(clientMqtt, obj, flags, rc):
@@ -123,16 +127,20 @@ async def walk(node, level=0):
     return dataNow
 
 
-async def catchNodes(client, opc_url):
+async def catchNodes(client, opc_url, catchingNodes):
     root_id = client.get_root_node()
     # node_List = await ua_utils.get_node_children(client.nodes.objects)
+    if catchingNodes == True:
+        obj = client.nodes.objects
+        child_1 = await walk(obj)
+        json_object = json.dumps(child_1, indent=4)
+        rec_opc_mqtt = str(json_object)
+        rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
+        catchingNodes = False
+        return rec_opc_mqtt
+    else:
+        pass
 
-    obj = client.nodes.objects
-    child_1 = await walk(obj)
-    json_object = json.dumps(child_1, indent=4)
-    rec_opc_mqtt = str(json_object)
-    rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
-    # print(json_object)
 
 # num = []
 async def checkMessageFrom(q):
@@ -153,7 +161,6 @@ async def checkMessageFrom(q):
             # res = literal_eval(num[6:8])
             # print(res)
         name_str = bMessage["TimeSync"]
-        print(name_str)
         year = name_str[0]
         month = name_str[1]
         day = name_str[2]
@@ -162,12 +169,9 @@ async def checkMessageFrom(q):
         second = name_str[5]
         milisecond = name_str[6:8].hex()
         milisecond_dec = int(milisecond, 16)
-        print(milisecond)
-        print(milisecond_dec)
-        print(f"{year};{month};{day};{hour};{minute};{second};{milisecond}")
-        for i in name_str:
-            print(type(i))
-            print(i)
+        timeStamp = f"{year}/{month}/{day} ; {hour}:{minute}:{second}:{milisecond_dec}"
+        print(timeStamp)
+
 
         # timeSync = timeSync_decoder(bMessage['TimeSync'])
         # print(timeSync)
@@ -175,31 +179,35 @@ async def checkMessageFrom(q):
         print("Subscription Problem !!!")
         await checkMessageFrom(q)
 
-async def opcConnection():
+async def opcConnection(server_state):
     try:
-        opc_url = "opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator"
-        client = await Client(opc_url)
-        print(client)
-        client.session_timeout = 2000
+        if server_state == True:
+            _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
+            opc_url = "opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator"
+            client = Client(opc_url)
+            print(client)
+            await client.connect()
+            client.session_timeout = 2000
+            server_state = False
+            async with client:
 
-        async with client:
+                # await checkMessageFrom(q)
 
-            # await checkMessageFrom(q)
+                await catchNodes(client, opc_url, catchingNodes)
 
-            await catchNodes(client, opc_url)
-
-            handler = SubscriptionHandler()
-            # We create a Client Subscription.
-            subscription = await client.create_subscription(500, handler)
-            nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20", "ns=2;s=Tag18"]
-            if nodeList != []:
-                for i in nodeList:
-                    newNodeList.append(client.get_node(i))
-                await newNodeList.append(client.get_node(ua.ObjectIds.Server_ServerStatus_CurrentTime))
-                while True:
-                    await subscription.subscribe_data_change(newNodeList)
-            else:
-                await main()
+                handler = SubscriptionHandler()
+                # We create a Client Subscription.
+                subscription = await client.create_subscription(500, handler)
+                nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20", "ns=2;s=Tag18"]
+                if nodeList != []:
+                    for i in nodeList:
+                        newNodeList.append(client.get_node(i))
+                    while True:
+                        await subscription.subscribe_data_change(newNodeList)
+                else:
+                    await main()
+        else:
+            print("opc_server connection Faild !!!")
     except:
         await main()
 async def brokerConnection(set_connection, clientMqtt):
@@ -251,9 +259,9 @@ async def main():
     # mqtt.mqtt_connection()
 
     tasks = [
-        brokerConnection(set_connection, clientMqtt),
-        asyncio.gather(opcConnection()),
-        checkMessageFrom(q)
+        asyncio.Task(brokerConnection(set_connection, clientMqtt)),
+        asyncio.Task(opcConnection(server_state)),
+        asyncio.Task(checkMessageFrom(q))
                        ]
     await asyncio.gather(*tasks)
 

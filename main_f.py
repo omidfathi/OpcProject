@@ -156,28 +156,25 @@ async def checkMessageFrom(q):
             bMessage["send_opc_tag"] = message.payload
         elif message.topic == "TimeSync":
             bMessage["TimeSync"] = message.payload
-            # num = message.payload
-            # print(type(num))
-            # res = literal_eval(num[6:8])
-            # print(res)
+
         name_str = bMessage["TimeSync"]
-        year = name_str[0]
-        month = name_str[1]
-        day = name_str[2]
-        hour = name_str[3]
-        minute = name_str[4]
-        second = name_str[5]
-        milisecond = name_str[6:8].hex()
-        milisecond_dec = int(milisecond, 16)
-        timeStamp = f"{year}/{month}/{day} ; {hour}:{minute}:{second}:{milisecond_dec}"
-        print(timeStamp)
-
-
+        if name_str != 0:
+            year = name_str[0]
+            month = name_str[1]
+            day = name_str[2]
+            hour = name_str[3]
+            minute = name_str[4]
+            second = name_str[5]
+            milisecond_dec = int(name_str[6:8].hex(), 16)
+            timeStamp = f"{year}/{month}/{day} ; {hour}:{minute}:{second}:{milisecond_dec}"
+            print()
+        bMessage["timeStamp"] = timeStamp
         # timeSync = timeSync_decoder(bMessage['TimeSync'])
         # print(timeSync)
     except asyncio.TimeoutError:
         print("Subscription Problem !!!")
         await checkMessageFrom(q)
+    return bMessage
 
 async def opcConnection(server_state):
     try:
@@ -214,7 +211,7 @@ async def brokerConnection(set_connection, clientMqtt):
     while set_connection:
         try:
             if clientMqtt.on_connect_fail != None:
-                clientMqtt = mqtt.Client("OPC_client")
+                # clientMqtt = mqtt.Client("OPC_client")
                 clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=0)
                 clientMqtt.loop_start()
                 clientMqtt.on_connect = on_connect
@@ -223,7 +220,7 @@ async def brokerConnection(set_connection, clientMqtt):
                 clientMqtt.on_message = on_message
                 clientMqtt.on_log
                 print(clientMqtt)
-                MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 1)]
+                MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 0)]
                 clientMqtt.subscribe(MQTT_TOPIC)
                 set_connection = False
             else:
@@ -261,9 +258,12 @@ async def main():
     tasks = [
         asyncio.Task(brokerConnection(set_connection, clientMqtt)),
         asyncio.Task(opcConnection(server_state)),
-        asyncio.Task(checkMessageFrom(q))
+
                        ]
+    bMessage = await checkMessageFrom(q)
+    # print(bMessage)
     await asyncio.gather(*tasks)
+
 
     # await asyncio.gather(opcConnection(), checkMessageFrom(q))
     # opc_url = mqtt.mqtt_sub(topic="", qos=0)

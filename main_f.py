@@ -25,13 +25,12 @@ bMessage = {
             "send_opc_tag": 0,
             "TimeSync": 0,
         }
-send_data = {
-    "id" : 0 ,
-    "value" : 0 ,
-    "percent" : 0 ,
-    "status" : 0 ,
-    "quality" : 0 ,
+send_value = {
+    "nodeTag": 0,
+    "value": 0,
 }
+send_data_list = []
+send_value_list = []
 jsonDatabase = {}
 # logging.basicConfig(level=logging.INFO)
 # _logger = logging.getLogger('asyncua')
@@ -48,14 +47,28 @@ class SubscriptionHandler:
         This method will be called when the Client received a data change message from the Server.
         """
         # _logger.info('datachange_notification %r %s', node, val)
-        dataType_v = await node.read_data_type_as_variant_type()
+        # dataType_v = await node.read_data_type_as_variant_type()
+        print(float(val))
         # sendValues[str(node)] = {
         #     "Value": float(val),
         #     "DataType": str(dataType_v.name)
         # }
-        send_data["value"] = float(val)
+
+        # print(data.subscription_data.node)
+        # print(len(newNodeList))
+        # print(str(data.subscription_data.node))
+        # for i in range(len(newNodeList)):
+        #     print(i)
+        send_value["value"] = float(val)
+        #     send_value["nodeTag"] = data.subscription_data.node
+        #     send_value_list.append(send_value)
+        #     print(send_value_list)
+
+        return send_value
+
         # jsonNodesValue = json.dumps(sendValues, indent=2)
         # print(jsonNodesValue)
+        # print(send_data)
 #
 
 def on_connect(clientMqtt, obj, flags, rc):
@@ -193,33 +206,33 @@ def checkMessageFrom(q):
         checkMessageFrom(q)
     return bMessage
 
-async def opcConnection(server_state):
+async def opcConnection(server_state, opcServer):
     try:
         if server_state == True:
             _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
-            opc_url = "opc.tcp://fateme:62640/IntegrationObjects/ServerSimulator"
+            opc_url = opcServer
             client = Client(opc_url)
             print(client)
             await client.connect()
             client.session_timeout = 1000
             server_state = False
-            async with client:
+            # async with client:
+            # await checkMessageFrom(q)
 
-                # await checkMessageFrom(q)
+            await catchNodes(client, opc_url, catchingNodes)
 
-                await catchNodes(client, opc_url, catchingNodes)
+            handler = SubscriptionHandler()
+            # We create a Client Subscription.
+            subscription = await client.create_subscription(1500, handler)
 
-                handler = SubscriptionHandler()
-                # We create a Client Subscription.
-                subscription = await client.create_subscription(500, handler)
-                nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20", "ns=2;s=Tag18"]
-                if nodeList != []:
-                    for i in nodeList:
-                        newNodeList.append(client.get_node(i))
-                    while True:
-                        await subscription.subscribe_data_change(newNodeList)
-                else:
-                    await main()
+            # nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20"]
+            # if nodeList != []:
+            #     for i in nodeList:
+            #         newNodeList.append(client.get_node(i))
+            #     subscription.subscribe_data_change(newNodeList)
+
+
+            return client
         else:
             print("opc_server connection Faild !!!")
     except:
@@ -266,49 +279,58 @@ def percentage(max, min, value):
     percent = (value-min)*100/(max-min)
     return percent
 
-
-
-
-
-async def main():
-    # clientMqtt.publish(topic="", payload="")
-    # clientMqtt.subscribe(topic="Get_OPC_TREE_Topic", qos=0)
-    # sub_message = queue(q)
-    # print(sub_message)
-        # Wait for at most 1 second
-
-    # mqtt.mqtt_connection()
-    brokerConnection(set_connection, clientMqtt)
+async def dataAccusation():
     bMessage = checkMessageFrom(q)
     print(type(bMessage["send_opc_tag"]))
     jsonDatabase = json.loads(bMessage["send_opc_tag"])
-    percent = percentage(max=jsonDatabase[0]["VMX"], min=jsonDatabase[0]["VMX"], value=send_data["value"])
-    send_data = {
-        "id" : jsonDatabase[0]["id"],
-        "value": 0,
-        "percent" : percent
-    }
-    print(jsonDatabase[2]["id"])
+    # percent = percentage(max=jsonDatabase[0]["VMX"], min=jsonDatabase[0]["VMX"], value=send_data["value"])
+    # send_data["id"] = jsonDatabase[]
 
-    tasks = [
+    if send_data_list == []:
+        for i in jsonDatabase:
+            send_data = {}
+            send_data["id"] = i["id"]
+            send_data["status"] = 0
+            send_data["quality"] = 0
+            send_data["opcServer"] = i["SOA"]
+            send_data["signals"] = i["signaladdress"]
+            send_data["VMN"] = i["VMN"]
+            send_data["VMX"] = i["VMX"]
+            send_data_list.append(send_data)
+    print(send_data_list)
 
-        asyncio.Task(opcConnection(server_state)),
-
-                       ]
+    return send_data_list
 
 
+async def main():
 
-    await asyncio.gather(*tasks)
+    brokerConnection(set_connection, clientMqtt)
+    dataBaseJson = await dataAccusation()
+    opcServer = dataBaseJson[0]["opcServer"]
+    VMN = dataBaseJson[0]["VMN"]
+    VMX = dataBaseJson[0]["VMX"]
+    signal = dataBaseJson[0]["signals"]
+    x = asyncio.create_task(opcConnection(server_state, opcServer))
+    client = await x
+    newNodeList.append(client.get_node(signal))
 
+    while True:
+        time.sleep(1)
+        # print(jsonDatabase[2]["id"])
 
-    # await asyncio.gather(opcConnection(), checkMessageFrom(q))
-    # opc_url = mqtt.mqtt_sub(topic="", qos=0)
-
+        print(dataBaseJson)
+        y = asyncio.create_task(client.get_values(newNodeList))
+        values = await y
+        print(values)
+        # print(await client.get_values(newNodeList))
+        # await asyncio.gather(opcConnection(), checkMessageFrom(q))
+        # opc_url = mqtt.mqtt_sub(topic="", qos=0)
+        if ConnectionError == "Connection is closed":
+            await main()
 
 # loop = asyncio.get_event_loop()
 if __name__ == "__main__":
     try:
-
         asyncio.run(main())
         # asyncio.run(checkMessageFrom(q))
 

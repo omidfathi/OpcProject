@@ -15,10 +15,10 @@ def buffer_data_get_padding(struct, buffer, offset, timeStamp, tagCount):
     struct.pack_into(buffer, offset, timeStamp, tagCount)
     return buffer
 
-def buffer_data_get(struct, buffer, data, values, percentage):
+def buffer_data_get(struct, buffer, data):
     i = 0
-    for key in data:
+    for y in data:
         offset = 10 + i
-        struct.pack_into(buffer, offset, data["id"], values[key], percentage[0], 0, 0)
+        struct.pack_into(buffer, offset, y["id"], y["values"], y["percents"], 0, 0)
         i += 12
     return buffer

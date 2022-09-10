@@ -1,6 +1,6 @@
 import asyncio
 import time
-from struct import *
+from toBuffer import *
 from asyncua.ua import ObjectIds # type: ignore[import]
 from asyncua.ua.uatypes import NodeId
 from Pyro4.socketutil import setKeepalive
@@ -10,6 +10,7 @@ from nodeSubscribe import SubscriptionHandler
 import codecs
 import paho.mqtt.client as mqtt
 from queue import Queue
+
 from ast import literal_eval
 
 # sys.path.insert(0, "..")
@@ -32,6 +33,10 @@ send_value = {
 send_data_list = []
 send_value_list = []
 jsonDatabase = {}
+signal = []
+timeStamp = []
+dataList = []
+dataCatchList = []
 # logging.basicConfig(level=logging.INFO)
 # _logger = logging.getLogger('asyncua')
 
@@ -175,6 +180,15 @@ async def catchNodes(client, opc_url, catchingNodes):
 
 
 # num = []
+async def get_timesync(q):
+    try:
+        message = q.get()
+
+        if message.topic == "TimeSync":
+            bMessage["TimeSync"] = message.payload
+        return bMessage["TimeSync"]
+    except:get_timesync(q)
+
 def checkMessageFrom(q):
     try:
         message = q.get()
@@ -182,8 +196,7 @@ def checkMessageFrom(q):
         if message.topic == "send_opc_tag":
             if bMessage["send_opc_tag"] == 0:
                 bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
-        elif message.topic == "TimeSync":
-            bMessage["TimeSync"] = message.payload
+
         # struct1 = Struct('>6bh')
         # name_str = struct1.unpack(bMessage["TimeSync"])
         # print(name_str)
@@ -214,7 +227,7 @@ async def opcConnection(server_state, opcServer):
             client = Client(opc_url)
             print(client)
             await client.connect()
-            client.session_timeout = 1000
+            client.session_timeout = 20000
             server_state = False
             # async with client:
             # await checkMessageFrom(q)
@@ -275,13 +288,13 @@ MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 1)]
 clientMqtt.subscribe(MQTT_TOPIC)
 clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
 
-def percentage(max, min, value):
-    percent = (value-min)*100/(max-min)
+def percentage(max, min, values):
+    for i in values:
+        percent = (i-min)*100/(max-min)
     return percent
 
 async def dataAccusation():
     bMessage = checkMessageFrom(q)
-    print(type(bMessage["send_opc_tag"]))
     jsonDatabase = json.loads(bMessage["send_opc_tag"])
     # percent = percentage(max=jsonDatabase[0]["VMX"], min=jsonDatabase[0]["VMX"], value=send_data["value"])
     # send_data["id"] = jsonDatabase[]
@@ -306,22 +319,58 @@ async def main():
 
     brokerConnection(set_connection, clientMqtt)
     dataBaseJson = await dataAccusation()
-    opcServer = dataBaseJson[0]["opcServer"]
-    VMN = dataBaseJson[0]["VMN"]
-    VMX = dataBaseJson[0]["VMX"]
-    signal = dataBaseJson[0]["signals"]
+    for i in dataBaseJson:
+        dataCatch = {
+            i["id"]:{
+                "opcServer":i["opcServer"],
+                "VMN":i["VMN"],
+                "VMX": i["VMX"],
+                "signals": [i["signals"]],
+                "tagCount": len(["signals"]),
+                "bufferSize": estimate_buffer_size(len(["signals"])),
+            }
+        }
+        dataCatchList.append(dataCatch)
+        # print(type(dataCatch[1]["tagCount"]))
+        # tagCount = len(signal)
+    print(dataCatchList)
     x = asyncio.create_task(opcConnection(server_state, opcServer))
     client = await x
-    newNodeList.append(client.get_node(signal))
+    for i in signal:
+        newNodeList.append(client.get_node(i))
+    structPad = set_structure('>8sh')
+    structData = set_structure('>hffbb')
+    buffer = estimate_buffer_size(tagCount)
+
 
     while True:
         time.sleep(1)
+        timeTask = asyncio.create_task(get_timesync(q))
+        timeSync = await timeTask
+        print(type(timeSync))
+        buffer = 0
+        buffer = estimate_buffer_size(tagCount)
+        buffer_data_get_padding(structPad, buffer, 0, timeSync, tagCount)
         # print(jsonDatabase[2]["id"])
-
+        print(timeSync)
         print(dataBaseJson)
         y = asyncio.create_task(client.get_values(newNodeList))
-        values = await y
+        values = (await y)
         print(values)
+
+        percent = percentage(VMX, VMN, values)
+        print(type(percent))
+        data = {
+            "id": dataBaseJson[0]["id"],
+            "values": float(values[0]),
+            "percents": float(percent),
+        }
+        dataList = []
+        dataList.append(data)
+        print(data)
+        buffer = buffer_data_get(structData, buffer, dataList)
+        print(buffer)
+        clientMqtt.publish(topic='omid_test_topic', payload=buffer)
         # print(await client.get_values(newNodeList))
         # await asyncio.gather(opcConnection(), checkMessageFrom(q))
         # opc_url = mqtt.mqtt_sub(topic="", qos=0)

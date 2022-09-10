@@ -1,42 +1,96 @@
+import asyncio
+import json
+
+from asyncua.ua import ObjectIds  # type: ignore[import]
 import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
-import paho.mqtt.subscribe as subscribe
+from queue import Queue
+
+set_connection = True
+catchingNodes = True
+server_state = True
+bMessage = {
+    "send_opc_tag": 0,
+    "TimeSync": 0,
+}
+send_value = {
+    "nodeTag": 0,
+    "value": 0,
+}
+send_data_list = []
+send_value_list = []
+jsonDatabase = {}
+signal = []
+timeStamp = []
+dataList = []
+dataCatchList = []
 
 
-class Mqtt:
-
-    def mqtt_connection_initial(self, mqttclientid, url, port):
-        self.client = mqtt.Client(mqttclientid)
-        self.url = url
-        self.port = port
-
-    def mqtt_connection(self):
-        self.client.connect(host=self.url, port=self.port)
-        self.client.loop_start()
-
-    def on_connect(self, userdata, flags, rc):
-        if rc == 0:
-            print("Connected to MQTT Broker!")
-        else:
-            print("Failed to connect, return code %d\n", rc)
-            self.client.loop_stop()
-
-    def on_subscribe(self, userdata, mid, granted_qoss):
-        print("Subscribed", userdata)
-
-    def on_publish(self, userdata, mid):
-        print("In on_pub callback mid= "+ str(mid))
-
-    def on_message(self, userdata, message):
-        print("New message received: ", str(message.payload.decode("utf_8")),"Topic: %s",message.topic,
-              "Retained: %s",message.retain)
+def on_connect(clientMqtt, obj, flags, rc):
+    print("rc: " + str(rc))
 
 
-    def mqtt_pub(self, topic, payload, qos):
-        self.client.publish(topic=topic, payload=payload,qos=qos)
-        print(f"Message{payload},was published to {topic} topic")
+def on_publish(clientMqtt, obj, mid):
+    print("mid: " + str(mid))
+    pass
 
-    def mqtt_sub(self, topic, qos):
-        self.client.subscribe(topic=topic, qos=qos)
-        # subscribe._on_message_simple(self.client)
+
+def on_subscribe(clientMqtt, obj, mid, granted_qos):
+    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+
+
+def on_log(clientMqtt, obj, level, string):
+    print(string)
+
+
+def on_message(clientMqtt, userdata, message):
+    # time.sleep(0.5)
+    q.put(message)
+
+
+def queue(qu):
+    message = qu.get()
+    return message
+
+
+async def get_timesync(q):
+    try:
+        message = q.get()
+
+        if message.topic == "TimeSync":
+            bMessage["TimeSync"] = message.payload
+        return bMessage["TimeSync"]
+    except:
+        get_timesync(q)
+
+
+async def checkMessageFrom(q):
+    try:
+        message = q.get()
+
+        if message.topic == "send_opc_tag":
+            if bMessage["send_opc_tag"] == 0:
+                bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+                dataBase = json.loads(bMessage["send_opc_tag"])
+    except asyncio.TimeoutError:
+        print("Subscription Problem !!!")
+        checkMessageFrom(q)
+    return dataBase
+
+
+async def brokerConnection(set_connection):
+    while set_connection:
+        try:
+            clientMqtt = mqtt.Client("OPC_client")
+            if clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=0) == 0:
+                clientMqtt.loop_start()
+                print(clientMqtt)
+                MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 0)]
+                clientMqtt.subscribe(MQTT_TOPIC)
+                clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
+                set_connection = False
+        except:
+            print("Can't Connect to broker")
+            set_connection = True
+
+    return clientMqtt
 

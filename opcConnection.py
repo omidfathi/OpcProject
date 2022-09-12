@@ -70,7 +70,7 @@ async def catchNodes(client, opc_url, catchingNodes):
 
 async def opcConnection(server_state, opcServer):
     try:
-        if server_state == True:
+        if server_state:
             _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
             opc_url = opcServer
             client = Client(opc_url)
@@ -78,10 +78,10 @@ async def opcConnection(server_state, opcServer):
             await client.connect()
             client.session_timeout = 20000
             server_state = False
-            await catchNodes(client, opc_url, catchingNodes)
+            # await catchNodes(client, opc_url, catchingNodes)
             return client
         else:
             print("opc_server connection Faild !!!")
     except:
-        server_state = True
-        opcConnection(server_state, opcServer)
+        return None
+        # await opcConnection(server_state, opcServer)

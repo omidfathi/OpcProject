@@ -19,6 +19,6 @@ def buffer_data_get(struct, buffer, data):
     i = 0
     for y in data:
         offset = 10 + i
-        struct.pack_into(buffer, offset, y["id"], y["values"], y["percents"], 0, 0)
+        struct.pack_into(buffer, offset, y, y["values"], y["percents"], 0, 0)
         i += 12
     return buffer

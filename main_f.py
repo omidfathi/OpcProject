@@ -41,39 +41,39 @@ dataCatchList = []
 # _logger = logging.getLogger('asyncua')
 
 
-class SubscriptionHandler:
-    """
-    The SubscriptionHandler is used to handle the data that is received for the subscription.
-    """
-
-    async def datachange_notification(self, node: Node, val, data):
-        """
-        Callback for asyncua Subscription.
-        This method will be called when the Client received a data change message from the Server.
-        """
-        # _logger.info('datachange_notification %r %s', node, val)
-        # dataType_v = await node.read_data_type_as_variant_type()
-        print(float(val))
-        # sendValues[str(node)] = {
-        #     "Value": float(val),
-        #     "DataType": str(dataType_v.name)
-        # }
-
-        # print(data.subscription_data.node)
-        # print(len(newNodeList))
-        # print(str(data.subscription_data.node))
-        # for i in range(len(newNodeList)):
-        #     print(i)
-        send_value["value"] = float(val)
-        #     send_value["nodeTag"] = data.subscription_data.node
-        #     send_value_list.append(send_value)
-        #     print(send_value_list)
-
-        return send_value
-
-        # jsonNodesValue = json.dumps(sendValues, indent=2)
-        # print(jsonNodesValue)
-        # print(send_data)
+# class SubscriptionHandler:
+#     """
+#     The SubscriptionHandler is used to handle the data that is received for the subscription.
+#     """
+#
+#     async def datachange_notification(self, node: Node, val, data):
+#         """
+#         Callback for asyncua Subscription.
+#         This method will be called when the Client received a data change message from the Server.
+#         """
+#         # _logger.info('datachange_notification %r %s', node, val)
+#         # dataType_v = await node.read_data_type_as_variant_type()
+#         print(float(val))
+#         # sendValues[str(node)] = {
+#         #     "Value": float(val),
+#         #     "DataType": str(dataType_v.name)
+#         # }
+#
+#         # print(data.subscription_data.node)
+#         # print(len(newNodeList))
+#         # print(str(data.subscription_data.node))
+#         # for i in range(len(newNodeList)):
+#         #     print(i)
+#         send_value["value"] = float(val)
+#         #     send_value["nodeTag"] = data.subscription_data.node
+#         #     send_value_list.append(send_value)
+#         #     print(send_value_list)
+#
+#         return send_value
+#
+#         # jsonNodesValue = json.dumps(sendValues, indent=2)
+#         # print(jsonNodesValue)
+#         # print(send_data)
 #
 
 def on_connect(clientMqtt, obj, flags, rc):
@@ -234,9 +234,9 @@ async def opcConnection(server_state, opcServer):
 
             await catchNodes(client, opc_url, catchingNodes)
 
-            handler = SubscriptionHandler()
+            # handler = SubscriptionHandler()
             # We create a Client Subscription.
-            subscription = await client.create_subscription(1500, handler)
+            # subscription = await client.create_subscription(1500, handler)
 
             # nodeList = ["ns=2;s=Tag11", "ns=2;s=Tag20"]
             # if nodeList != []:
@@ -333,14 +333,18 @@ async def main():
         dataCatchList.append(dataCatch)
         # print(type(dataCatch[1]["tagCount"]))
         # tagCount = len(signal)
+    print(dataCatchList[0][1]["opcServer"])
+
+    opcServer = dataCatchList[0][1]["opcServer"]
     print(dataCatchList)
     x = asyncio.create_task(opcConnection(server_state, opcServer))
     client = await x
     for i in signal:
         newNodeList.append(client.get_node(i))
+    print(newNodeList)
     structPad = set_structure('>8sh')
     structData = set_structure('>hffbb')
-    buffer = estimate_buffer_size(tagCount)
+    buffer = estimate_buffer_size(1)
 
 
     while True:
@@ -349,28 +353,29 @@ async def main():
         timeSync = await timeTask
         print(type(timeSync))
         buffer = 0
-        buffer = estimate_buffer_size(tagCount)
-        buffer_data_get_padding(structPad, buffer, 0, timeSync, tagCount)
+        buffer = estimate_buffer_size(1)
+        buffer_data_get_padding(structPad, buffer, 0, timeSync, 1)
         # print(jsonDatabase[2]["id"])
         print(timeSync)
         print(dataBaseJson)
-        y = asyncio.create_task(client.get_values(newNodeList))
+        a = [client.get_node("ns=2;s=Tag11")]
+        y = asyncio.create_task(client.get_values(a))
         values = (await y)
         print(values)
 
-        percent = percentage(VMX, VMN, values)
-        print(type(percent))
-        data = {
-            "id": dataBaseJson[0]["id"],
-            "values": float(values[0]),
-            "percents": float(percent),
-        }
-        dataList = []
-        dataList.append(data)
-        print(data)
+        # percent = percentage(VMX, VMN, values)
+        # print(type(percent))
+        # data = {
+        #     "id": dataBaseJson[0]["id"],
+        #     "values": float(values[0]),
+        #     "percents": float(percent),
+        # }
+        # dataList = []
+        # dataList.append(data)
+        # print(data)
         buffer = buffer_data_get(structData, buffer, dataList)
         print(buffer)
-        clientMqtt.publish(topic='omid_test_topic', payload=buffer)
+        # clientMqtt.publish(topic='omid_test_topic', payload=buffer)
         # print(await client.get_values(newNodeList))
         # await asyncio.gather(opcConnection(), checkMessageFrom(q))
         # opc_url = mqtt.mqtt_sub(topic="", qos=0)

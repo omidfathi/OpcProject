@@ -24,41 +24,12 @@ timeStamp = []
 dataList = []
 dataCatchList = []
 
-
-def on_connect(clientMqtt, obj, flags, rc):
-    print("rc: " + str(rc))
-
-
-def on_publish(clientMqtt, obj, mid):
-    print("mid: " + str(mid))
-    pass
-
-
-def on_subscribe(clientMqtt, obj, mid, granted_qos):
-    print("Subscribed: " + str(mid) + " " + str(granted_qos))
-
-
-def on_log(clientMqtt, obj, level, string):
-    print(string)
-
-
-def on_message(clientMqtt, userdata, message):
-    # time.sleep(0.5)
-    q.put(message)
-
-
-def queue(qu):
-    message = qu.get()
-    return message
-
-
 async def get_timesync(q):
     try:
         message = q.get()
 
         if message.topic == "TimeSync":
-            bMessage["TimeSync"] = message.payload
-        return bMessage["TimeSync"]
+            return message.payload
     except:
         get_timesync(q)
 
@@ -71,10 +42,10 @@ async def checkMessageFrom(q):
             if bMessage["send_opc_tag"] == 0:
                 bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
                 dataBase = json.loads(bMessage["send_opc_tag"])
+                return dataBase
     except asyncio.TimeoutError:
         print("Subscription Problem !!!")
-        checkMessageFrom(q)
-    return dataBase
+        await checkMessageFrom(q)
 
 
 async def brokerConnection(set_connection):

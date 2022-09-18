@@ -2,9 +2,12 @@ from asyncua.ua import ObjectIds
 from asyncua.ua.uatypes import NodeId
 from asyncua import Client, Node, ua
 import json
+import asyncio
+
 
 dataNow = {}
 catchingNodes = True
+
 
 async def walk(node, level=0):
     children = await node.get_children()
@@ -71,17 +74,17 @@ async def catchNodes(client, opc_url, catchingNodes):
 async def opcConnection(server_state, opcServer):
     try:
         if server_state:
+            print("try to connect")
             _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
             opc_url = opcServer
             client = Client(opc_url)
-            print(client)
+            client.session_timeout = 10000
             await client.connect()
-            client.session_timeout = 20000
+            print("Connected to server")
             server_state = False
             # await catchNodes(client, opc_url, catchingNodes)
             return client
-        else:
-            print("opc_server connection Faild !!!")
+
     except:
-        return None
-        # await opcConnection(server_state, opcServer)
+        opcConnection(server_state, opcServer)
+

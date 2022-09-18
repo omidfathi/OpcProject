@@ -346,41 +346,41 @@ async def main():
     structData = set_structure('>hffbb')
     buffer = estimate_buffer_size(1)
 
+    try:
+        while True:
+            time.sleep(1)
+            timeTask = asyncio.create_task(get_timesync(q))
+            timeSync = await timeTask
+            print(type(timeSync))
+            buffer = 0
+            buffer = estimate_buffer_size(1)
+            buffer_data_get_padding(structPad, buffer, 0, timeSync, 1)
+            # print(jsonDatabase[2]["id"])
+            print(timeSync)
+            print(dataBaseJson)
+            a = [client.get_node("ns=2;s=Tag11")]
+            y = asyncio.create_task(client.get_values(a))
+            values = (await y)
+            print(values)
 
-    while True:
-        time.sleep(1)
-        timeTask = asyncio.create_task(get_timesync(q))
-        timeSync = await timeTask
-        print(type(timeSync))
-        buffer = 0
-        buffer = estimate_buffer_size(1)
-        buffer_data_get_padding(structPad, buffer, 0, timeSync, 1)
-        # print(jsonDatabase[2]["id"])
-        print(timeSync)
-        print(dataBaseJson)
-        a = [client.get_node("ns=2;s=Tag11")]
-        y = asyncio.create_task(client.get_values(a))
-        values = (await y)
-        print(values)
-
-        # percent = percentage(VMX, VMN, values)
-        # print(type(percent))
-        # data = {
-        #     "id": dataBaseJson[0]["id"],
-        #     "values": float(values[0]),
-        #     "percents": float(percent),
-        # }
-        # dataList = []
-        # dataList.append(data)
-        # print(data)
-        buffer = buffer_data_get(structData, buffer, dataList)
-        print(buffer)
-        # clientMqtt.publish(topic='omid_test_topic', payload=buffer)
-        # print(await client.get_values(newNodeList))
-        # await asyncio.gather(opcConnection(), checkMessageFrom(q))
-        # opc_url = mqtt.mqtt_sub(topic="", qos=0)
-        if ConnectionError == "Connection is closed":
-            await main()
+            # percent = percentage(VMX, VMN, values)
+            # print(type(percent))
+            # data = {
+            #     "id": dataBaseJson[0]["id"],
+            #     "values": float(values[0]),
+            #     "percents": float(percent),
+            # }
+            # dataList = []
+            # dataList.append(data)
+            # print(data)
+            buffer = buffer_data_get(structData, buffer, dataList)
+            print(buffer)
+            # clientMqtt.publish(topic='omid_test_topic', payload=buffer)
+            # print(await client.get_values(newNodeList))
+            # await asyncio.gather(opcConnection(), checkMessageFrom(q))
+            # opc_url = mqtt.mqtt_sub(topic="", qos=0)
+    except:
+        main()
 
 # loop = asyncio.get_event_loop()
 if __name__ == "__main__":

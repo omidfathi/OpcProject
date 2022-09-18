@@ -2,17 +2,18 @@ from toBuffer import *
 from mqtt_c import *
 
 dataDict = {}
-
+percent = []
 def percentage(max, min, values):
+    percent = []
     for i in values:
-        percent = (i-min)*100/(max-min)
+        percent.append((i-min)*100/(max-min))
     return percent
 
-async def dataAccusation(database):
+def dataAccusation(database):
     # database = json.loads(bMessage["send_opc_tag"])
     # percent = percentage(max=jsonDatabase[0]["VMX"], min=jsonDatabase[0]["VMX"], value=send_data["value"])
     # send_data["id"] = jsonDatabase[]
-
+    dataDict = {}
     if dataList == []:
         for i in database:
             dataCatch = {

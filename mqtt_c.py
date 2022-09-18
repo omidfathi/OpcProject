@@ -31,10 +31,10 @@ async def get_timesync(q):
         if message.topic == "TimeSync":
             return message.payload
     except:
-        get_timesync(q)
+        await get_timesync(q)
 
 
-async def checkMessageFrom(q):
+def checkMessageFrom(q):
     try:
         message = q.get()
 
@@ -45,10 +45,10 @@ async def checkMessageFrom(q):
                 return dataBase
     except asyncio.TimeoutError:
         print("Subscription Problem !!!")
-        await checkMessageFrom(q)
+        checkMessageFrom(q)
 
 
-async def brokerConnection(set_connection):
+def brokerConnection(set_connection):
     while set_connection:
         try:
             clientMqtt = mqtt.Client("OPC_client")
@@ -62,6 +62,10 @@ async def brokerConnection(set_connection):
         except:
             print("Can't Connect to broker")
             set_connection = True
+            brokerConnection(set_connection)
 
     return clientMqtt
 
+def mqtt_disconnect(clientMqtt):
+    clientMqtt.disconnect()
+    print("mqtt Dis")

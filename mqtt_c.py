@@ -34,30 +34,53 @@ async def get_timesync(q):
         await get_timesync(q)
 
 
-def checkMessageFrom(q):
-    try:
+async def checkMessageFrom(q, clientMqtt, firstTime):
+
+    if firstTime is True:
+        clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
         message = q.get()
 
         if message.topic == "send_opc_tag":
-            if bMessage["send_opc_tag"] == 0:
+            # if bMessage["send_opc_tag"] == 0:
+            bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+            dataBase = json.loads(bMessage["send_opc_tag"])
+        firstTime = False
+    else:
+        try:
+            message = q.get()
+
+            if message.topic == "send_opc_tag":
+
+                # if bMessage["send_opc_tag"] == 0:
                 bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
                 dataBase = json.loads(bMessage["send_opc_tag"])
-                return dataBase
-    except asyncio.TimeoutError:
-        print("Subscription Problem !!!")
-        checkMessageFrom(q)
+            # if message.topic == "OPCTagAdded":
+            #     if message.payload.decode('UTF-8') ==
+            #         bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+            #         dataBase = json.loads(bMessage["send_opc_tag"])
+            #         return dataBase
+            #
+            # if message.topic == "OPCtagDelete":
+            #     if message.payload.decode('UTF-8') !=
+            #
+            # bMessage["send_opc_tag"] = 0
+            else:
+                dataBase = 0
+        except asyncio.TimeoutError:
+            print("Subscription Problem !!!")
+            checkMessageFrom(q, clientMqtt, firstTime)
+    return dataBase, firstTime
 
-
-def brokerConnection(set_connection):
+def brokerConnection(set_connection, mqttTopic):
     while set_connection:
         try:
             clientMqtt = mqtt.Client("OPC_client")
-            if clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=0) == 0:
+            if clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=10) == 0:
                 clientMqtt.loop_start()
                 print(clientMqtt)
-                MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 0)]
+                MQTT_TOPIC = mqttTopic
+                # MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 0), ("OPCTagAdded", 0)]
                 clientMqtt.subscribe(MQTT_TOPIC)
-                clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
                 set_connection = False
         except:
             print("Can't Connect to broker")

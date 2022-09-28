@@ -62,11 +62,11 @@ async def catchNodes(client, opc_url, catchingNodes):
     if catchingNodes == True:
         obj = client.nodes.objects
         child_1 = await walk(obj)
-        json_object = json.dumps(child_1, indent=4)
-        rec_opc_mqtt = str(json_object)
-        rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
+        # json_object = json.dumps(child_1, indent=4)
+        # rec_opc_mqtt = str(json_object)
+        # rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
         catchingNodes = False
-        return rec_opc_mqtt
+        return child_1
     else:
         pass
 
@@ -78,7 +78,7 @@ async def opcConnection(server_state, opcServer):
             _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
             opc_url = opcServer
             client = Client(opc_url)
-            client.session_timeout = 10000
+            client.session_timeout = 30000
             await client.connect()
             print("Connected to server")
             server_state = False
@@ -86,5 +86,5 @@ async def opcConnection(server_state, opcServer):
             return client
 
     except:
-        opcConnection(server_state, opcServer)
+        await opcConnection(server_state, opcServer)
 

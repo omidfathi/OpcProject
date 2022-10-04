@@ -24,31 +24,30 @@ timeStamp = []
 dataList = []
 dataCatchList = []
 
-async def get_timesync(q):
+def get_timesync(q):
     try:
         message = q.get()
-
         if message.topic == "TimeSync":
             return message.payload
     except:
-        await get_timesync(q)
+        get_timesync(q)
 
 
-async def checkMessageFrom(q, clientMqtt, firstTime):
+def checkMessageFrom(q, clientMqtt, firstTime):
 
+    dataBase = {}
     if firstTime is True:
         clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
         message = q.get()
-
         if message.topic == "send_opc_tag":
             # if bMessage["send_opc_tag"] == 0:
             bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
             dataBase = json.loads(bMessage["send_opc_tag"])
         firstTime = False
+        return dataBase, firstTime
     else:
         try:
             message = q.get()
-
             if message.topic == "send_opc_tag":
 
                 # if bMessage["send_opc_tag"] == 0:
@@ -66,10 +65,11 @@ async def checkMessageFrom(q, clientMqtt, firstTime):
             # bMessage["send_opc_tag"] = 0
             else:
                 dataBase = 0
+            return dataBase, firstTime
         except asyncio.TimeoutError:
             print("Subscription Problem !!!")
             checkMessageFrom(q, clientMqtt, firstTime)
-    return dataBase, firstTime
+            return dataBase, firstTime
 
 def brokerConnection(set_connection, mqttTopic):
     while set_connection:
@@ -85,7 +85,7 @@ def brokerConnection(set_connection, mqttTopic):
         except:
             print("Can't Connect to broker")
             set_connection = True
-            brokerConnection(set_connection)
+            brokerConnection(set_connection, mqttTopic)
 
     return clientMqtt
 

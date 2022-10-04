@@ -11,11 +11,11 @@ def estimate_buffer_size(tagCount):
     return buffer
 
 
-async def buffer_data_get_padding(struct, buffer, offset, timeStamp, tagCount):
+def buffer_data_get_padding(struct, buffer, offset, timeStamp, tagCount):
     struct.pack_into(buffer, offset, timeStamp, tagCount)
     return buffer
 
-async def buffer_data_get(struct, buffer, values):
+def buffer_data_get(struct, buffer, values):
     i = 0
 
     for y in range(len(values["values"])):

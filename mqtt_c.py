@@ -35,7 +35,7 @@ def get_timesync(q):
 
 def checkMessageFrom(q, clientMqtt, firstTime):
 
-    dataBase = {}
+
     if firstTime is True:
         clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
         message = q.get()
@@ -49,20 +49,8 @@ def checkMessageFrom(q, clientMqtt, firstTime):
         try:
             message = q.get()
             if message.topic == "send_opc_tag":
-
-                # if bMessage["send_opc_tag"] == 0:
                 bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
                 dataBase = json.loads(bMessage["send_opc_tag"])
-            # if message.topic == "OPCTagAdded":
-            #     if message.payload.decode('UTF-8') ==
-            #         bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
-            #         dataBase = json.loads(bMessage["send_opc_tag"])
-            #         return dataBase
-            #
-            # if message.topic == "OPCtagDelete":
-            #     if message.payload.decode('UTF-8') !=
-            #
-            # bMessage["send_opc_tag"] = 0
             else:
                 dataBase = 0
             return dataBase, firstTime
@@ -70,6 +58,7 @@ def checkMessageFrom(q, clientMqtt, firstTime):
             print("Subscription Problem !!!")
             checkMessageFrom(q, clientMqtt, firstTime)
             return dataBase, firstTime
+
 
 def brokerConnection(set_connection, mqttTopic):
     while set_connection:

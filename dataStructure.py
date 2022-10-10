@@ -29,6 +29,7 @@ def dataAccusation(database):
                         "values": 0,
                         "percent": [],
                         "timeStamp": 0,
+                        "client": 0,
                     }
                 }
                 dataDict.update(dataCatch)

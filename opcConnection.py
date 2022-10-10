@@ -56,17 +56,17 @@ async def walk(node, level=0):
     return dataNow
 
 
-async def catchNodes(client, opc_url, catchingNodes):
+async def catchNodes(client, catchingNodes):
     root_id = client.get_root_node()
     # node_List = await ua_utils.get_node_children(client.nodes.objects)
     if catchingNodes == True:
         obj = client.nodes.objects
         child_1 = await walk(obj)
-        # json_object = json.dumps(child_1, indent=4)
+        json_object = json.dumps(child_1, indent=4)
         # rec_opc_mqtt = str(json_object)
         # rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
         catchingNodes = False
-        return child_1
+        return json_object
     else:
         pass
 
@@ -86,5 +86,6 @@ async def opcConnection(server_state, opcServer):
             return client
 
     except:
-        await opcConnection(server_state, opcServer)
+        return 0
+        # await opcConnection(server_state, opcServer)
 

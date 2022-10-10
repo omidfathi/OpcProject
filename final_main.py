@@ -81,11 +81,13 @@ def create_database(firstTime):
 
 
 async def create_dataDict(dataDict, opcServers, server_state):
-
-    client = await opcConnection(server_state, opcServers[0])
+    clients = []
+    for i in dataDict:
+        client = await opcConnection(server_state, dataDict[i]["opcServer"])
+        dataDict[i]["client"] = client
     # taskOPC = asyncio.create_task(opcConnection(server_state, opcServers[0]))
     # client, server_state = await taskOPC
-    if client != 0:
+    if clients != 0:
         # NodesofServer = await catchNodes(client, opcServers[0], True)
         for i in dataDict:
             for y in dataDict[i]["signals"]:
@@ -98,13 +100,19 @@ async def create_dataDict(dataDict, opcServers, server_state):
     return dataDict, client, server_state
 
 
+
 async def data_catchSend(clientMqtt, server_state):
     structPad = set_structure('>8sh')
     structData = set_structure('<hffbb')
     firstTime = True
     loop2 = asyncio.get_event_loop()
+
     try:
         while True:
+            # message = q.get()
+            # if message.topic == "Receive_OPC_Server":
+            #     bMessage["Receive_OPC_Server"] = message.payload.decode('UTF-8')
+            #     dataBase = json.loads(bMessage["send_opc_tag"]
 
             if firstTime:
                 dataBase, opcServers, firstTime = create_database(firstTime)
@@ -114,6 +122,21 @@ async def data_catchSend(clientMqtt, server_state):
 
 
             else:
+                message = q.get()
+                if message.topic == "Receive_OPC_Server":
+                    server_state = True
+                    catchingNodes = True
+                    bMessage = message.payload.decode('UTF-8')
+                    # dataBase = json.loads(bMessage["send_opc_tag"])
+                    client = await opcConnection(server_state, bMessage)
+                    if client != 0:
+                        nodesTree = await catchNodes(client, catchingNodes)
+                        clientMqtt.publish('OPC_Server_Tree', nodesTree)
+                        print("Tree Cached")
+                    else:
+                        clientMqtt.publish('OPC_Server_Tree', "")
+                        print("Not Tree")
+
                 # z = asyncio.create_task(create_database(firstTime))
                 dataBase, opcServers, firstTime = create_database(firstTime)
                 # while server_state:
@@ -195,7 +218,7 @@ async def main(clientMqtt, server_state):
 if __name__ == "__main__":
     try:
         set_connection = True
-        mqttTopic = [("send_opc_tag", 0), ("TimeSync", 0)]
+        mqttTopic = [("send_opc_tag", 0), ("TimeSync", 0), ("Receive_OPC_Server", 0)]
         clientMqtt = brokerConnection(set_connection, mqttTopic)
         stayOnDemand(clientMqtt)
 

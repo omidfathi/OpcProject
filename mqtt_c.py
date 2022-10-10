@@ -48,7 +48,10 @@ def checkMessageFrom(q, clientMqtt, firstTime):
     else:
         try:
             message = q.get()
-            if message.topic == "send_opc_tag":
+            if message.topic == "Receive_OPC_Server":
+                bMessage["Receive_OPC_Server"] = message.payload.decode('UTF-8')
+                dataBase = json.loads(bMessage["send_opc_tag"])
+            elif message.topic == "send_opc_tag":
                 bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
                 dataBase = json.loads(bMessage["send_opc_tag"])
             else:

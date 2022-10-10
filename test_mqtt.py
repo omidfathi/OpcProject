@@ -30,7 +30,7 @@ def on_log(mqttc, obj, level, string):
 # mqttc = mqtt.Client("client-id")
 # but note that the client id must be unique on the broker. Leaving the client
 # id parameter empty will generate a random id for you.
-mqttc = mqtt.Client("OPC_client")
+mqttc = mqtt.Client("asdasd")
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 mqttc.on_publish = on_publish
@@ -38,5 +38,7 @@ mqttc.on_subscribe = on_subscribe
 # Uncomment to enable debug messages
 # mqttc.on_log = on_log
 mqttc.connect("192.168.1.51", 1883, 60)
-mqttc.subscribe("send_opc_tag", 0)
+mqttc.subscribe("OPC_Server_Tree", 0)
+
+mqttc.publish('Receive_OPC_Server', "opc.tcp://fateme:5059/OPCUA/SimulationServer")
 mqttc.loop_forever()

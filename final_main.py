@@ -105,7 +105,6 @@ async def data_catchSend(clientMqtt, server_state):
     structPad = set_structure('>8sh')
     structData = set_structure('<hffbb')
     firstTime = True
-    loop2 = asyncio.get_event_loop()
 
     try:
         while True:
@@ -208,8 +207,6 @@ server_state = True
 
 
 async def main(clientMqtt, server_state):
-
-
 
     await data_catchSend(clientMqtt, server_state)
 

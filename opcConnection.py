@@ -18,7 +18,11 @@ async def walk(node, level=0):
     dataValue = []
 
     for i in children:
+        print(i.nodeid.Identifier)
+        print(type(i.nodeid.Identifier))
         if i.nodeid.Identifier == 2253:
+            children.remove(i)
+        elif i.nodeid.Identifier == 23470:
             children.remove(i)
         else:
             try:
@@ -61,6 +65,7 @@ async def catchNodes(client, catchingNodes):
     # node_List = await ua_utils.get_node_children(client.nodes.objects)
     if catchingNodes == True:
         obj = client.nodes.objects
+        print(obj)
         child_1 = await walk(obj)
         json_object = json.dumps(child_1, indent=4)
         # rec_opc_mqtt = str(json_object)

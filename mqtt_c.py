@@ -4,7 +4,11 @@ import json
 from asyncua.ua import ObjectIds  # type: ignore[import]
 import paho.mqtt.client as mqtt
 from queue import Queue
+from moat.mqtt.client import open_mqttclient
+from moat.mqtt.mqtt.constants import QOS_1, QOS_2
+from asyncio_mqtt import Client, MqttError, ProtocolVersion
 
+import moat.mqtt.client
 set_connection = True
 catchingNodes = True
 server_state = True
@@ -24,62 +28,56 @@ timeStamp = []
 dataList = []
 dataCatchList = []
 
-def get_timesync(q):
-    try:
-        message = q.get()
-        if message.topic == "TimeSync":
-            return message.payload
-    except:
-        get_timesync(q)
+async def get_timesync(q):
+
+    if q.topic == "TimeSync":
+        return q.payload
 
 
-def checkMessageFrom(q, clientMqtt, firstTime):
+
+async def checkMessageFrom(message):
+    # message = await C.deliver_message()
+    # packet = message.publish_packet
+    opcServers = []
 
 
-    if firstTime is True:
-        clientMqtt.publish(payload="", topic="ready_to_Receive_opc_topic")
-        message = q.get()
-        if message.topic == "send_opc_tag":
-            # if bMessage["send_opc_tag"] == 0:
-            bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
-            dataBase = json.loads(bMessage["send_opc_tag"])
-        firstTime = False
-        return dataBase, firstTime
-    else:
+    bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+    dataBase = json.loads(bMessage["send_opc_tag"])
+    return dataBase
+    # else:
+    #     try:
+    #         message = q.get()
+    #         if message.topic == "Receive_OPC_Server":
+    #             bMessage["Receive_OPC_Server"] = message.payload.decode('UTF-8')
+    #             dataBase = json.loads(bMessage["send_opc_tag"])
+    #         elif message.topic == "send_opc_tag":
+    #             bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+    #             dataBase = json.loads(bMessage["send_opc_tag"])
+    #         else:
+    #             dataBase = 0
+    #         return dataBase, firstTime
+    #     except asyncio.TimeoutError:
+    #         print("Subscription Problem !!!")
+    #         checkMessageFrom(q, clientMqtt, firstTime)
+    #         return dataBase, firstTime
+
+
+async def brokerConnection(set_connection, mqttTopic):
         try:
-            message = q.get()
-            if message.topic == "Receive_OPC_Server":
-                bMessage["Receive_OPC_Server"] = message.payload.decode('UTF-8')
-                dataBase = json.loads(bMessage["send_opc_tag"])
-            elif message.topic == "send_opc_tag":
-                bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
-                dataBase = json.loads(bMessage["send_opc_tag"])
-            else:
-                dataBase = 0
-            return dataBase, firstTime
-        except asyncio.TimeoutError:
-            print("Subscription Problem !!!")
-            checkMessageFrom(q, clientMqtt, firstTime)
-            return dataBase, firstTime
+            clientMqtt = await Client(hostname="192.168.1.51", port=1883, client_id="OPC_client")
+            await clientMqtt.subscribe(mqttTopic)
 
-
-def brokerConnection(set_connection, mqttTopic):
-    while set_connection:
-        try:
-            clientMqtt = mqtt.Client("OPC_client")
-            if clientMqtt.connect(host="192.168.1.51", port=1883, keepalive=10) == 0:
-                clientMqtt.loop_start()
-                print(clientMqtt)
-                MQTT_TOPIC = mqttTopic
+                # await C.publish("OPC_Server_Tree", b"TEST MESSAGE WITH QOS_0", qos=0x00)
+                # await C.publish("OPC_Server_Tree", b"TEST MESSAGE WITH QOS_1", qos=0x01)
+                # await C.publish("OPC_Server_Tree", b"TEST MESSAGE WITH QOS_2", qos=0x02)
                 # MQTT_TOPIC = [("send_opc_tag", 0), ("TimeSync", 0), ("OPCTagAdded", 0)]
-                clientMqtt.subscribe(MQTT_TOPIC)
-                set_connection = False
+            return clientMqtt
         except:
             print("Can't Connect to broker")
             set_connection = True
-            brokerConnection(set_connection, mqttTopic)
+            await brokerConnection(set_connection, mqttTopic)
 
-    return clientMqtt
+    # return C
 
 def mqtt_disconnect(clientMqtt):
     clientMqtt.disconnect()

@@ -33,6 +33,7 @@ def dataAccusation(database):
                     }
                 }
                 dataDict.update(dataCatch)
+
     else:
         pass
     return dataDict

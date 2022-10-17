@@ -5,6 +5,7 @@ import json
 import asyncio
 
 
+
 dataNow = {}
 catchingNodes = True
 
@@ -76,19 +77,18 @@ async def catchNodes(client, catchingNodes):
         pass
 
 
-async def opcConnection(server_state, opcServer):
+async def opcConnection(opcServer):
     try:
-        if server_state:
-            print("try to connect")
-            _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
-            opc_url = opcServer
-            client = Client(opc_url)
-            client.session_timeout = 30000
-            await client.connect()
-            print("Connected to server")
-            server_state = False
-            # await catchNodes(client, opc_url, catchingNodes)
-            return client
+
+        print("try to connect")
+        _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
+        opc_url = opcServer
+        client = Client(opc_url)
+        client.session_timeout = 30000
+        await client.connect()
+        print("Connected to server")
+        # await catchNodes(client, opc_url, catchingNodes)
+        return client
 
     except:
         return 0

@@ -19,8 +19,8 @@ async def walk(node, level=0):
     dataValue = []
 
     for i in children:
-        print(i.nodeid.Identifier)
-        print(type(i.nodeid.Identifier))
+        # print(i.nodeid.Identifier)
+        # print(type(i.nodeid.Identifier))
         if i.nodeid.Identifier == 2253:
             children.remove(i)
         elif i.nodeid.Identifier == 23470:
@@ -61,20 +61,20 @@ async def walk(node, level=0):
     return dataNow
 
 
-async def catchNodes(client, catchingNodes):
+async def catchNodes(client):
     root_id = client.get_root_node()
     # node_List = await ua_utils.get_node_children(client.nodes.objects)
-    if catchingNodes == True:
-        obj = client.nodes.objects
-        print(obj)
-        child_1 = await walk(obj)
-        json_object = json.dumps(child_1, indent=4)
-        # rec_opc_mqtt = str(json_object)
-        # rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
-        catchingNodes = False
-        return json_object
-    else:
-        pass
+    # if catchingNodes == True:
+    obj = client.nodes.objects
+    # print(obj)
+    child_1 = await walk(obj)
+    json_object = json.dumps(child_1, indent=4)
+    # rec_opc_mqtt = str(json_object)
+    # rec_opc_mqtt = opc_url + "**" + rec_opc_mqtt
+    catchingNodes = False
+    return json_object
+    # else:
+    #     pass
 
 
 async def opcConnection(opcServer):

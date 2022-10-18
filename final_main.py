@@ -232,6 +232,17 @@ async def test() -> None:
                         logger.info(
                             "Message %s %s", message.topic, message.payload
                         )
+                    if message.topic == "Receive_OPC_Server":
+                        bMessage = message.payload.decode('UTF-8')
+                        # dataBase = json.loads(bMessage["send_opc_tag"])
+                        client = await opcConnection(bMessage)
+                        if client != 0:
+                            nodesTree = await catchNodes(client)
+                            await clientMqtt.publish('OPC_Server_Tree', nodesTree)
+                            print("Tree Cached")
+                        else:
+                            clientMqtt.publish('OPC_Server_Tree', "")
+                            print("Not Tree")
                     if dataDict != {}:
                         dataDict = await get_values(dataDict, client)
 
@@ -263,6 +274,7 @@ async def test() -> None:
                         buffer = values["buffer"]
                         buffer_data_get_padding(structPad, buffer, 0, timeSync, len(value))
                         buffer_data_get(structData, buffer, values)
+                        print(values["id"])
                         await clientMqtt.publish("omid_test_topic", payload=buffer)
 
             await asyncio.sleep(2)

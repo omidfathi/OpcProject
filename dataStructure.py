@@ -36,4 +36,5 @@ def dataAccusation(database):
 
     else:
         pass
+    print(dataDict)
     return dataDict

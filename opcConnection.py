@@ -84,7 +84,7 @@ async def opcConnection(opcServer):
         _SERVER_STATE = NodeId(ObjectIds.Server_ServerStatus_State)
         opc_url = opcServer
         client = Client(opc_url)
-        client.session_timeout = 30000
+        client.session_timeout = 10000
         await client.connect()
         print("Connected to server")
         # await catchNodes(client, opc_url, catchingNodes)

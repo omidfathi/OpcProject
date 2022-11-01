@@ -88,9 +88,10 @@ async def create_dataDict(dataDict):
     for i in dataDict:
         client = await opcConnection(dataDict[i]["opcServer"])
         dataDict[i]["client"] = client
+
     # taskOPC = asyncio.create_task(opcConnection(server_state, opcServers[0]))
     # client, server_state = await taskOPC
-    if clients != 0:
+    if clients != 0:                                #check it, there is problem
         # NodesofServer = await catchNodes(client, opcServers[0], True)
         for i in dataDict:
             for y in dataDict[i]["signals"]:
@@ -175,10 +176,10 @@ async def data_catchSend(clientMqtt, server_state):
                                                                               timeSync, 1)
                     # dataDict[i]['bufferSize'] = await buffer_data_get(structData, dataDict[i]["bufferSize"], i, dataDict[i])
             values = {
-                "id":id,
-                "values":value,
-                "percent":percentt,
-                "buffer":estimate_buffer_size(len(value))
+                "id": id,
+                "values": value,
+                "percent": percentt,
+                "buffer": estimate_buffer_size(len(value))
             }
             buffer = values["buffer"]
             buffer_data_get_padding(structPad, buffer, 0, timeSync, len(value))
@@ -186,7 +187,7 @@ async def data_catchSend(clientMqtt, server_state):
             i = 0
             print(values["id"])
             # await asyncio.sleep(0.8)
-            clientMqtt.publish('omid_test_topic', buffer)
+            clientMqtt.publish('live_OPC_tags_value', buffer)
     except:
         server_state = True
         await data_catchSend(clientMqtt, server_state)
@@ -227,17 +228,19 @@ async def test() -> None:
                         await clientMqtt.publish("ready_to_Receive_opc_topic", payload="")
                         firstTime = False
                     if message.topic == "send_opc_tag":
+                        print(message.payload.decode("UTF-8"))
                         dataBase, opcServers = await create_database(message)
                         dataDict, client = await create_dataDict(dataBase)
+                        print(dataDict)
                         logger.info(
                             "Message %s %s", message.topic, message.payload
                         )
                     if message.topic == "Receive_OPC_Server":
                         bMessage = message.payload.decode('UTF-8')
                         # dataBase = json.loads(bMessage["send_opc_tag"])
-                        client = await opcConnection(bMessage)
-                        if client != 0:
-                            nodesTree = await catchNodes(client)
+                        client_rec = await opcConnection(bMessage)
+                        if client_rec != 0:
+                            nodesTree = await catchNodes(client_rec)
                             await clientMqtt.publish('OPC_Server_Tree', nodesTree)
                             print("Tree Cached")
                         else:
@@ -274,10 +277,12 @@ async def test() -> None:
                         buffer = values["buffer"]
                         buffer_data_get_padding(structPad, buffer, 0, timeSync, len(value))
                         buffer_data_get(structData, buffer, values)
-                        print(values["id"])
-                        await clientMqtt.publish("omid_test_topic", payload=buffer)
 
-            await asyncio.sleep(2)
+                        print(values["values"])
+                        # await asyncio.sleep(0.8)
+                        await clientMqtt.publish("live_OPC_tags_value", payload=buffer)
+
+            # await asyncio.sleep(2)
     except MqttError as e:
         logger.error("Connection to MQTT closed: " + str(e))
     except Exception:

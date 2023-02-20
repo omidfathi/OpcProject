@@ -1,5 +1,4 @@
 from toBuffer import *
-from mqtt_c import *
 
 dataDict = {}
 percent = []

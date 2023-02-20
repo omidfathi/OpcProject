@@ -17,7 +17,21 @@ newNodeslist = []
 values = []
 dataBase = None
 events = []
+bMessage = {
+    "send_opc_tag": 0,
+    "TimeSync": 0,
+}
 
+
+async def checkMessageFrom(message):
+    # message = await C.deliver_message()
+    # packet = message.publish_packet
+    opcServers = []
+
+
+    bMessage["send_opc_tag"] = message.payload.decode('UTF-8')
+    dataBase = json.loads(bMessage["send_opc_tag"])
+    return dataBase
 # def on_connect(clientMqtt, obj, flags, rc):
 #     print("rc: " + str(rc))
 #
@@ -66,10 +80,6 @@ async def get_values(dataDict):
                         i["values"][j] = 1
                     elif i["values"][j] == False:
                         i["values"][j] = 0
-                print(i["values"])
-
-            # else:
-            #     dataDict[i]['connection_status'] = 0
         return dataDict
     except:
         return dataDict
@@ -129,16 +139,16 @@ def combine_dicts(lst_of_dicts):
 
     return list(soa_dict.values())
 
-async def set_time_stamp(dataDict, q):
-    try:
-        for i in dataDict:
-            dataDict[i]["timeStamp"] = await get_timesync(q)
-        return dataDict
-    except:
-        await set_time_stamp(dataDict, q)
+# async def set_time_stamp(dataDict, q):
+#     try:
+#         for i in dataDict:
+#             dataDict[i]["timeStamp"] = await get_timesync(q)
+#         return dataDict
+#     except:
+#         await set_time_stamp(dataDict, q)
 
 logger = logging.getLogger(__name__)
-mqttTopic = [("TimeSync", QOS_1), ("send_opc_tag", QOS_1), ("Receive_OPC_Server", QOS_1)]
+mqttTopic = [("TimeSync", 1), ("send_opc_tag", 1), ("Receive_OPC_Server", 1)]
 
 
 async def test() -> None:
@@ -301,7 +311,7 @@ server_state = True
 
 
 async def main(server_state):
-    mqttTopic = [("send_opc_tag", QOS_1), ("TimeSync", QOS_1), ("Receive_OPC_Server", QOS_1)]
+    mqttTopic = [("send_opc_tag", 1), ("TimeSync", 1), ("Receive_OPC_Server", 1)]
     # clientMqtt = asyncio.SelectorEventLoop().run_until_complete(asyncio.wait([test()]))
     structPad = set_structure('>8sh')
     structData = set_structure('<hffbb')
@@ -415,8 +425,6 @@ async def main(server_state):
                                                 low_value = low_value + i["LOV"]
                                                 under_low_value = under_low_value + i["ULV"]
 
-
-
                             values = {
                                 "id": id,
                                 "values": value,
@@ -435,15 +443,6 @@ async def main(server_state):
 
                             }
                             status = []
-
-                                    # quality_buffer = buffer_quality_data_get(i, timeSync,
-                                    #                                          quality=0, status=1)
-                                    # await clientMqtt.publish("OPC_Events", payload=quality_buffer)
-
-                            # for i in dataDict:
-                            #     quality_var = Quality(i["client"], i["quality"], i["old_quality"])
-                            #     quality = quality_var.quality_check()
-                            #     quality_event = quality_var.quality_event()
                             for p in range(len(values["id"])):
                                 compare_values = Comparison(values["old_values"][p], values["values"][p],
                                                             values["hysteresis"][p],
@@ -451,16 +450,10 @@ async def main(server_state):
                                                             values["low_value"][p],
                                                             values["under_low_value"][p], values["status"][p],
                                                             values["old_status"][p])
-                                # print("old_value:", values["old_values"])
-                                # print("values:", values["values"])
-
                                 values["status"][p] = compare_values.compare()
                                 status.append(values["status"][p])
                                 event_status = values["status"][p]
-                                # print("status:", compare_values.compare())
                                 events = compare_values.event()
-
-
                                 if events == 1:
                                     events_value = {
                                         "id": values["id"][p],
@@ -488,7 +481,6 @@ async def main(server_state):
                             buffer_data_get(structData, buffer, values, 1, status=values["status"])
                             old_values = values["values"]
                             old_status = values["status"]
-                            # print(value)
                             for i in dataDict:
                                 if i["opc_connection"] != 0:
                                     if await Client.check_connection(i["client"]) == None:
@@ -508,6 +500,7 @@ async def main(server_state):
                                         i["old_quality"] = i["quality"]
 
                             await clientMqtt.publish("live_OPC_tags_value", payload=buffer)
+                            print(values["values"])
 
 
         except MqttError as e:
@@ -520,14 +513,6 @@ async def main(server_state):
             await asyncio.sleep(3)
             asyncio.run(await main(server_state))
 
-        # await asyncio.sleep(5)
-
-
-# await data_catchSend(clientMqtt, server_state)
-
-
-
 if __name__ == "__main__":
-
     asyncio.run(main(server_state))
 

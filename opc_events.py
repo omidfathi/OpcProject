@@ -1,3 +1,6 @@
+from asyncua import Client
+
+
 class Comparison:
     def __init__(self, old_value, new_value, hysteresis, over_high_value, high_value, low_value, under_low_value, status, old_status):
         self.old_value = old_value
@@ -9,6 +12,7 @@ class Comparison:
         self.under_low_value = under_low_value
         self.status = status
         self.old_status = old_status
+
     def compare(self):
         if self.new_value > self.old_value:
             if self.status == 1:
@@ -64,11 +68,27 @@ class Comparison:
         return self.status
     def event(self):
         if self.old_status != self.status:
-            return "1"
+            return 1
         else:
-            return "0"
+            return 0
 
+class Quality:
+    def __init__(self, client, quality, old_quality):
+        self.client = client
+        self.quality = quality
+        self.old_quality = old_quality
 
+    async def quality_check(self):
+        if await Client.check_connection(self.client) == None:
+            self.quality = 1
+            return self.quality
+        else:
+            self.quality = 0
+            return self.quality
+
+    def quality_event(self):
+        if self.quality != self.old_quality:
+            return self.quality
 
 # over_high_value = 100
 # high_value = 80

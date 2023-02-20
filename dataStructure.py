@@ -5,41 +5,22 @@ dataDict = {}
 percent = []
 def percentage(max, min, values):
     percent = []
-    for i in values:
-        percent.append((i-min)*100/(max-min))
+    for i in range(len(values)):
+        percent.append((values[i]-min[i])*100/(max[i]-min[i]))
     return percent
 
 def dataAccusation(database):
-    # database = json.loads(bMessage["send_opc_tag"])
-    # percent = percentage(max=jsonDatabase[0]["VMX"], min=jsonDatabase[0]["VMX"], value=send_data["value"])
-    # send_data["id"] = jsonDatabase[]
     if database != 0:
-        dataDict = {}
-        if dataList == []:
-            for i in database:
-                dataCatch = {
-                    i["id"]: {
-                        "opcServer": i["SOA"],
-                        "VMN": i["VMN"],
-                        "VMX": i["VMX"],
-                        "OHV": i["OHV"],
-                        "HIV": i["HIV"],
-                        "LOV": i["LOV"],
-                        "ULV": i["ULV"],
-                        "HYS": i["HYS"],
-                        "signals": [i["signaladdress"]],
-                        "tagCount": len(["signals"]),
-                        "bufferSize": estimate_buffer_size(len(["signals"])),
-                        "nodeList": [],
-                        "values": 0,
-                        "percent": [],
-                        "timeStamp": 0,
-                        "client": 0,
-                    }
-                }
-                dataDict.update(dataCatch)
+        for i in database:
+            print(i["id"])
+            i["tagCount"] = len(i["signaladdress"])
+            i["bufferSize"] = estimate_buffer_size(len(i["signaladdress"]))
+            i["values"] = 0
+            i["percent"] = []
+            i["timeStamp"] = 0
+            i["client"] = 0
 
     else:
         pass
-    print(dataDict)
-    return dataDict
+    return database
+

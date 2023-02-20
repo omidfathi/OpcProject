@@ -94,3 +94,5 @@ async def opcConnection(opcServer):
         return 0
         # await opcConnection(server_state, opcServer)
 
+async def connection_alive(client):
+    return await Client.check_connection(client)

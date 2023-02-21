@@ -11,7 +11,6 @@ def percentage(max, min, values):
 def dataAccusation(database):
     if database != 0:
         for i in database:
-            print(i["id"])
             i["tagCount"] = len(i["signaladdress"])
             i["bufferSize"] = estimate_buffer_size(len(i["signaladdress"]))
             i["values"] = 0

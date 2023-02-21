@@ -86,11 +86,12 @@ async def opcConnection(opcServer):
         client = Client(opc_url)
         client.session_timeout = 10000
         await client.connect()
-        print("Connected to server")
+        print("Connected to server: ", opc_url)
         # await catchNodes(client, opc_url, catchingNodes)
         return client
 
     except:
+        print("Connection Was Unsuccessful to ", opc_url)
         return 0
         # await opcConnection(server_state, opcServer)
 

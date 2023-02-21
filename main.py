@@ -330,6 +330,7 @@ async def main(server_state):
             logger.info("Connecting to MQTT")
             async with ClientM(hostname="192.168.1.173", port=1883, client_id="OPC_client") as clientMqtt:
                 logger.info("Connection to MQTT open")
+                print("Connection to Broker Establish")
                 async with clientMqtt.unfiltered_messages() as messages:
                     await clientMqtt.subscribe(mqttTopic)
                     async for message in messages:
@@ -340,7 +341,7 @@ async def main(server_state):
                             await clientMqtt.publish("ready_to_Receive_opc_topic", payload="")
                             firstTime = False
                         if message.topic == "send_opc_tag":
-                            print(message.payload.decode("UTF-8"))
+                            # print(message.payload.decode("UTF-8"))
                             dataBase, opcServers = await create_database(message)
                             dataDict, signal_count = await create_dataDict(dataBase)
                             for i in range(len(dataDict)):
@@ -353,7 +354,7 @@ async def main(server_state):
 
                                 for i in dataDict:
                                     i["old_quality"] = 1
-                            print(dataDict)
+                            # print(dataDict)
                             logger.info(
                                 "Message %s %s", message.topic, message.payload
                             )
@@ -368,7 +369,7 @@ async def main(server_state):
                                 print(nodesTree)
                             else:
                                 await clientMqtt.publish('OPC_Server_Tree', "")
-                                print("Not Tree")
+                                print("Getting nodes unsuccessful")
                         if dataDict != {}:
 
                             for i in dataDict:
@@ -424,7 +425,6 @@ async def main(server_state):
                                                 high_value = high_value + i["HIV"]
                                                 low_value = low_value + i["LOV"]
                                                 under_low_value = under_low_value + i["ULV"]
-
                             values = {
                                 "id": id,
                                 "values": value,
